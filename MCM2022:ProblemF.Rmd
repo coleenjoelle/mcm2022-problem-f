@@ -1,0 +1,228 @@
+---
+title: 'MCM 2022: Problem F'
+author: "Katherine, CJ"
+date: "2/18/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+GDP = read.csv(file = "GDP.csv", header = TRUE, sep = ",")
+summary(GDP$X2018)
+plot(GDP$X2017, GDP$X2018)
+GDP2018 = GDP$X2018
+USGDP =  subset(GDP, Country == 'United States') 
+UKGDP =  subset(GDP, Country == 'United Kingdom')
+ChinaGDP =  subset(GDP, Country == 'China')
+MexicoGDP =  subset(GDP, Country == 'Mexico')
+
+UniRank = read.csv(file = "2020-QS-World-University-Rankings.csv", header = TRUE)
+table(UniRank$Country) ## HARD
+
+HIndex2021 = read.csv("world-happiness-report-2021.csv", header = TRUE, sep = ",")
+summary(HIndex2021$Ladder.score)
+USHIndex =  subset(HIndex2021, Country.name == 'United States')
+UKHIndex =  subset(HIndex2021, Country.name == 'United Kingdom')
+ChinaHIndex =  subset(HIndex2021, Country.name == 'China')
+MexicoHIndex =  subset(HIndex2021, Country.name == 'Mexico')
+
+SpaceProgram = read.csv('MathModelingSpacePrograms[2022data].xlsx - Sheet1.csv', header = TRUE, sep = ",")
+summary(SpaceProgram$Government.Expenditures.for.Space.Programs...10s.millions.USD.)
+USSpaceProgram =  subset(SpaceProgram, Country.== 'USA') 
+UKSpaceProgram =  subset(SpaceProgram, Country.== 'UK') 
+ChinaSpaceProgram =  subset(SpaceProgram, Country.== 'China')
+MexicoSpaceProgram = 0
+
+WorldPop = read.csv("WorldPopulation1960-2020.csv", header = TRUE, sep = ",")
+summary(WorldPop$X2018)
+USAWP = subset(WorldPop, Country.Name == 'United States')
+UKWP = subset(WorldPop, Country.Name == 'United Kingdom')
+ChinaWP = subset(WorldPop, Country.Name == 'China')
+MexicoWP = subset(WorldPop, Country.Name == 'Mexico')
+
+GiniC = read.csv("GiniCoefficient 2020 - Sheet1.csv", header = TRUE, sep = ",")
+summary(GiniC$Latest)
+USGini = subset(GiniC, Country == 'United States')
+UKGini = subset(GiniC, Country == 'United Kingdom')
+ChinaGini = 0
+MexicoGini = subset(GiniC, Country == 'Mexico')
+```
+
+Our skeleton equation to measure global equity:
+$Score = aq[GDP] + br[university: population ratio] + cs[space program budget] + dt[HI] + eu[Gini]$
+
+Example test
+```{r}
+## remove or mess around with population and space prog
+USScore =  (USGDP$X2018*(10^(-3)*(4/11)) + 159/USAWP$X2018*(10^(7))*(2/11) + USSpaceProgram$Government.Expenditures.for.Space.Programs...10s.millions.USD.*(10^(-4))*(1/11)  + USHIndex$Ladder.score*(1/11)  + (1-USGini$Latest)*10*(3/11))
+
+UKScore =  (UKGDP$X2018*(10^(-3)*(4/11)) + 86/UKWP$X2018*(10^(7))*(2/11) + UKSpaceProgram$Government.Expenditures.for.Space.Programs...10s.millions.USD.*(10^(-4))*(1/11) + UKHIndex$Ladder.score*(1/11)  + (1-UKGini$Latest)*10*(3/11))
+
+ChinaScore =  (ChinaGDP$X2018*(10^(-3)*(4/11)) + 42/ChinaWP$X2018*(10^(7))*(2/11) + ChinaSpaceProgram$Government.Expenditures.for.Space.Programs...10s.millions.USD.*(10^(-4))*(1/11)  + ChinaHIndex$Ladder.score*(1/11)  + 0*10*(3/11))
+
+MexicoScore =  (MexicoGDP$X2018*(10^(-3)*(4/11)) + 13/MexicoWP$X2018*(10^(7))*(2/11) + ChinaSpaceProgram$Government.Expenditures.for.Space.Programs...10s.millions.USD.*(10^(-4))*(1/11)  + MexicoHIndex$Ladder.score*(1/11)  + (1-MexicoGini$Latest)*10*(3/11))
+
+USScore
+UKScore
+ChinaScore
+MexicoScore
+```
+
+ Generate validations
+```{r}
+data = read.csv("MCM Full Data - Sheet1.csv", header = TRUE, sep = ",")
+
+N = 39
+result = numeric(N)
+for (i in 1:N) {
+  result[i] = data$GDP2018[i]*(10^(-3)*(4/11)) + (data$TotalSRank[i]/data$WP2020[i]*(10^(7)*(2/11)) + data$SPFund[i]*(10^(-4)*(1/11)) + data$HI12021[i]*(1/11)) + data$Gini2020[i]*(10*(3/11))
+}
+
+result
+```
+
+```{r}
+## Create subsets
+EURegion = subset(data, Region == 'Europe')
+AMERegion = subset(data, Region == 'America')
+MERegion = subset(data, Region == 'Middle East')
+
+summary(EURegion$GE.Index)
+sd(EURegion$GE.Index)
+summary(AMERegion$GE.Index)
+sd(AMERegion$GE.Index)
+summary(MERegion$GE.Index)
+sd(MERegion$GE.Index)
+```
+
+```{r}
+plot(data$GDP2018, data$GE.Index, xlab = "GDP (US Dollars)", ylab = "Global Equity Index", main = "Global Equity Index vs. GDP from 2018")
+lin.reg1 = lm(data$GE.Index ~ data$GDP2018)
+lin.reg1
+abline(lin.reg1, col="orange")
+cor(data$GDP2018, data$GE.Index)
+
+plot(data$Gini2020, data$GE.Index, xlab = "Gini Coefficient from 2020", ylab = "Global Equity Index", main = "Global Equity Index vs. Gini Coefficient from 2020")
+lin.reg2 = lm(data$GE.Index ~ data$Gini2020)
+lin.reg2
+abline(lin.reg2, col="orange")
+cor(data$Gini2020, data$GE.Index)
+
+plot(data$HI12021, data$GE.Index, xlab = "Happiness Index from 2021", ylab = "Global Equity Index", main = "Global Equity Index vs. Happiness Index 2021")
+lin.reg3 = lm(data$GE.Index ~ data$HI12021)
+lin.reg3
+abline(lin.reg3, col="orange")
+cor(data$HI12021, data$GE.Index)
+
+plot(data$WP2020, data$GE.Index, xlab = "World Population (ppl)", ylab = "Global Equity Index", main = "Global Equity Index vs. World Population in 2020")
+lin.reg4 = lm(data$GE.Index ~ data$WP2020)
+lin.reg4
+abline(lin.reg4, col="orange")
+cor(data$WP2020, data$GE.Index)
+
+plot(data$SPFund, data$GE.Index, xlab = "10s of Millions of USD", ylab = "Global Equity Index", main = "Global Equity Index vs. Space Program Fund")
+lin.reg5 = lm(data$GE.Index ~ data$SPFund)
+lin.reg5
+abline(lin.reg5, col="orange")
+cor(data$SPFund, data$GE.Index)
+
+plot(data$TotalSRank/data$WP2020, data$GE.Index, xlab = "School Ranks/Population", ylab = "Global Equity Index", main = "Global Equity Index vs. School Ranks/Population")
+lin.reg6 = lm(data$GE.Index ~ data$TotalSRank/data$WP2020)
+lin.reg6
+abline(lin.reg6, col="orange")
+cor(data$TotalSRank/data$WP2020, data$GE.Index)
+
+```
+
+
+Weight on Space Program Fund
+```{r}
+plot(data$GDP2018, data$GE.IndexSpace, xlab = "GDP (US Dollars)", ylab = "Global Equity Index", main = "SPF: Global Equity Index vs. GDP from 2018")
+lin.reg1 = lm(data$GE.IndexSpace ~ data$GDP2018)
+lin.reg1
+abline(lin.reg1, col="orange")
+cor(data$GDP2018, data$GE.IndexSpace)
+
+plot(data$Gini2020, data$GE.IndexSpace, xlab = "Gini Coefficient from 2020", ylab = "Global Equity Index", main = "SPF: Global Equity Index vs. Gini Coefficient from 2020")
+lin.reg2 = lm(data$GE.IndexSpace ~ data$Gini2020)
+lin.reg2
+abline(lin.reg2, col="orange")
+cor(data$Gini2020, data$GE.IndexSpace)
+
+plot(data$HI12021, data$GE.IndexSpace, xlab = "Happiness Index from 2021", ylab = "Global Equity Index", main = "SPF: Global Equity Index vs. Happiness Index 2021")
+lin.reg3 = lm(data$GE.IndexSpace ~ data$HI12021)
+lin.reg3
+abline(lin.reg3, col="orange")
+cor(data$HI12021, data$GE.IndexSpace)
+
+plot(data$WP2020, data$GE.IndexSpace, xlab = "World Population (ppl)", ylab = "Global Equity Index", main = "SPF: Global Equity Index vs. World Population in 2020")
+lin.reg4 = lm(data$GE.IndexSpace ~ data$WP2020)
+lin.reg4
+abline(lin.reg4, col="orange")
+cor(data$WP2020, data$GE.IndexSpace)
+
+plot(data$SPFund, data$GE.IndexSpace, xlab = "10s of Millions of USD", ylab = "Global Equity Index", main = "SPF: Global Equity Index vs. Space Program Fund")
+lin.reg3 = lm(data$GE.IndexSpace ~ data$SPFund)
+lin.reg3
+abline(lin.reg3, col="orange")
+cor(data$SPFund, data$GE.IndexSpace)
+
+plot(data$TotalSRank/data$WP2020, data$GE.IndexSpace, xlab = "School Ranks/Population", ylab = "Global Equity Index", main = "SPF: Global Equity Index vs. School Ranks/Population")
+lin.reg6 = lm(data$GE.IndexSpace ~ data$TotalSRank/data$WP2020)
+lin.reg6
+abline(lin.reg6, col="orange")
+cor(data$TotalSRank/data$WP2020, data$GE.IndexSpace)
+```
+
+Weight on Schools / Population
+```{r}
+plot(data$GDP2018, data$GE.IndexSchool, xlab = "GDP (US Dollars)", ylab = "Global Equity Index", main = "S/P: Global Equity Index vs. GDP from 2018")
+lin.reg1 = lm(data$GE.IndexSchool ~ data$GDP2018)
+lin.reg1
+abline(lin.reg1, col="orange")
+cor(data$GDP2018, data$GE.IndexSchool)
+
+plot(data$Gini2020, data$GE.IndexSchool, xlab = "Gini Coefficient from 2020", ylab = "Global Equity Index", main = "S/P: Global Equity Index vs. Gini Coefficient from 2020")
+lin.reg2 = lm(data$GE.IndexSchool ~ data$Gini2020)
+lin.reg2
+abline(lin.reg2, col="orange")
+cor(data$Gini2020, data$GE.IndexSchool)
+
+plot(data$HI12021, data$GE.IndexSchool, xlab = "Happiness Index from 2021", ylab = "Global Equity Index", main = "S/P: Global Equity Index vs. Happiness Index 2021")
+lin.reg3 = lm(data$GE.IndexSchool ~ data$HI12021)
+lin.reg3
+abline(lin.reg3, col="orange")
+cor(data$HI12021, data$GE.IndexSchool)
+
+plot(data$WP2020, data$GE.IndexSchool, xlab = "World Population (ppl)", ylab = "Global Equity Index", main = "S/P: Global Equity Index vs. World Population in 2020")
+lin.reg4 = lm(data$GE.IndexSchool ~ data$WP2020)
+lin.reg4
+abline(lin.reg4, col="orange")
+cor(data$WP2020, data$GE.IndexSchool)
+
+plot(data$SPFund, data$GE.IndexSchool, xlab = "10s of Millions of USD", ylab = "Global Equity Index", main = "S/P: Global Equity Index vs. Space Program Fund")
+lin.reg5 = lm(data$GE.IndexSchool ~ data$SPFund)
+lin.reg5
+abline(lin.reg5, col="orange")
+cor(data$SPFund, data$GE.IndexSchool)
+
+plot(data$TotalSRank/data$WP2020, data$GE.IndexSchool, xlab = "School Ranks/Population", ylab = "Global Equity Index", main = "S/P: Global Equity Index vs. School Ranks/Population")
+lin.reg6 = lm(data$GE.IndexSchool ~ data$TotalSRank/data$WP2020)
+lin.reg6
+abline(lin.reg6, col="orange")
+cor(data$TotalSRank/data$WP2020, data$GE.IndexSchool)
+
+```
+
+```{r}
+sd(data$GE.Index)
+mean(data$GE.Index)
+summary(data$GE.Index)
+
+(21.1346*(4/11)) + (18.897/31.02)*(2/11)+ .14356*(1/11) + 5.533*(1/11) + (1-3.266)*10*(3/11)
+ 
+```
+
